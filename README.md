@@ -1,4 +1,4 @@
-# Home Assistant Community Add-on: Tailscale
+# Home Assistant Community Add-on: Tailscale (with Nginx Proxy Manager)
 
 [![GitHub Release][releases-shield]][releases]
 ![Project Stage][project-stage-shield]
@@ -19,6 +19,12 @@
 [![Support Frenck on Patreon][patreon-shield]][patreon]
 
 Zero config VPN for building secure networks.
+
+> 🔀 **Fork Notice**
+>  
+> This is a fork of the original Tailscale Add-on.
+> The main change is that the target port is now configurable, making Tailscale compatible with **Nginx Proxy Manager**.
+> It also supports HTTPS-enabled subdomains via Tailscale services, allowing you to route each subdomain in Nginx to any port you choose.
 
 ## About
 

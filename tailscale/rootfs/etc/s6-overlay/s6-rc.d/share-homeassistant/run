@@ -69,4 +69,25 @@ fi
 echo "" >&3
 
 # Set up serve or funnel
-exec /opt/tailscale $(bashio::config 'share_homeassistant') --https=$(bashio::config 'share_on_port' '443') --set-path=/ "http://127.0.0.1:$(bashio::core.port)"
+/opt/tailscale $(bashio::config 'share_homeassistant') --https=$(bashio::config 'share_on_port' '443') --set-path=/ "http://127.0.0.1:$(bashio::config 'target_port' '80')"
+
+# Advertise additional Tailscale Services (svc:<name>)
+if bashio::config.has_value 'advertise_services'; then
+  mapfile -t ADVERTISE_SERVICES < <(bashio::config 'advertise_services' | jq -r '.[]')
+
+  TARGET_PORT="$(bashio::config 'target_port' '80')"
+  HTTPS_PORT="$(bashio::config 'share_on_port' '443')"
+
+  for svc in "${ADVERTISE_SERVICES[@]}"; do
+    svc="$(echo "$svc" | xargs)"
+    [[ -z "$svc" ]] && continue
+
+    bashio::log.info "Advertising svc:${svc} -> 127.0.0.1:${TARGET_PORT}"
+    /opt/tailscale serve \
+      --service="svc:${svc}" \
+      --https="${HTTPS_PORT}" \
+      "http://127.0.0.1:${TARGET_PORT}"
+  done
+fi
+
+exit 0

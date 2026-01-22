@@ -1,0 +1,60 @@
+---
+name: Sync upstream branch + rebase main
+
+# yamllint disable-line rule:truthy
+on:
+  schedule:
+    - cron: "0 4 * * *"  # 04:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-upstream-branch:
+    name: Sync origin/upstream with upstream/main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout upstream branch
+        uses: actions/checkout@v4
+        with:
+          ref: upstream
+          fetch-depth: 0
+
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream https://github.com/hassio-addons/addon-tailscale.git || true
+          git fetch upstream --prune
+
+      - name: Hard reset origin/upstream to upstream/main
+        run: |
+          git reset --hard upstream/main
+
+      - name: Push upstream branch
+        run: |
+          git push origin upstream --force-with-lease
+
+  rebase-main:
+    name: Rebase main onto origin/upstream
+    runs-on: ubuntu-latest
+    needs: sync-upstream-branch
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch updated upstream branch
+        run: |
+          git fetch origin upstream --prune
+
+      - name: Rebase main onto upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rebase origin/upstream
+
+      - name: Push main
+        run: |
+          git push origin main --force-with-lease

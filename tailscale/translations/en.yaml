@@ -68,6 +68,19 @@ configuration:
       internet.
       Only ports 443, 8443, and 10000 are allowed by Tailscale.
       When not set, port 443 is used by default.
+  target_port:
+    name: Target port to proxy
+    description: >-
+      This option lets you specify which internal port the Tailscale Serve and Funnel
+      features will present to the internet.
+      When not set, port 80 (Nginx Proxy Manager default HTTP port) is used.
+  advertise_services:
+    name: Advertise services
+    description: >-
+      This option allows you to expose services and use them as HTTPS subdomains.
+      First, you must add them in the Admin Console. Then, after running the add-on,
+      you need to approve each service before it becomes active.
+      When not set, no services are advertised by default.
   snat_subnet_routes:
     name: Source NAT subnet routes
     description: >-
