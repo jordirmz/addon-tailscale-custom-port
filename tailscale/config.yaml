@@ -1,6 +1,6 @@
 ---
 name: Tailscale (with NPM)
-version: dev
+version: "0.0.0-dev.202601311125"
 slug: tailscale-nginx-proxy
 description: Zero config VPN for building secure networks (with NPM support)
 url: https://github.com/jordirmz/app-tailscale-nginx-proxy
