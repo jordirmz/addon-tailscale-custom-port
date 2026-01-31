@@ -1,0 +1,104 @@
+---
+name: Sync upstream branch + rebase main
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # 04:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sync-upstream-branch:
+    name: Sync origin/upstream with upstream/main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout upstream branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: upstream
+          fetch-depth: 0
+          persist-credentials: false
+          
+      - name: Authenticate git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          
+      - name: Add upstream remote and fetch
+        run: |
+          git remote add upstream https://github.com/hassio-addons/app-tailscale.git || true
+          git fetch upstream --prune
+
+      - name: Hard reset origin/upstream to upstream/main
+        run: |
+          git reset --hard upstream/main
+
+      - name: Push upstream branch
+        run: |
+          git push origin upstream --force-with-lease
+
+  rebase-main:
+    name: Rebase main onto origin/upstream
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: sync-upstream-branch
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+          
+      - name: Authenticate git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+
+      - name: Fetch updated upstream branch
+        run: |
+          git fetch origin upstream --prune
+
+      - name: Rebase main onto upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rebase origin/upstream
+
+      - name: Auto bump version when upstream changes
+        run: |
+          set -e
+          # Current upstream commit
+          CURRENT_UPSTREAM_SHA=$(git rev-parse origin/upstream)
+          # Previously stored upstream commit (if any)
+          if [ -f .upstream-sha ]; then
+            PREVIOUS_UPSTREAM_SHA=$(cat .upstream-sha)
+          else
+            PREVIOUS_UPSTREAM_SHA=""
+          fi
+          echo "Previous upstream SHA: $PREVIOUS_UPSTREAM_SHA"
+          echo "Current  upstream SHA: $CURRENT_UPSTREAM_SHA"
+          # If upstream did not change, do nothing
+          if [ "$CURRENT_UPSTREAM_SHA" = "$PREVIOUS_UPSTREAM_SHA" ]; then
+            echo "Upstream unchanged → no version bump"
+            exit 0
+          fi
+          # HA-safe timestamp version
+          TIMESTAMP=$(date +%Y%m%d%H%M)
+          NEW_VERSION="0.0.0-dev.${TIMESTAMP}"
+          sed -i "s/^version:.*/version: \"$NEW_VERSION\"/" tailscale/config.yaml
+          echo "$CURRENT_UPSTREAM_SHA" > .upstream-sha
+          git add tailscale/config.yaml .upstream-sha
+          git commit -m "chore: sync upstream @${CURRENT_UPSTREAM_SHA:0:7}"
+
+      - name: Push main
+        run: |
+          git push origin main --force-with-lease

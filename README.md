@@ -1,4 +1,4 @@
-# Home Assistant Community App: Tailscale
+# Home Assistant Community App: Tailscale (with Nginx Proxy Manager)
 
 [![GitHub Release][releases-shield]][releases]
 ![Project Stage][project-stage-shield]
@@ -19,6 +19,42 @@
 [![Support Frenck on Patreon][patreon-shield]][patreon]
 
 Zero config VPN for building secure networks.
+
+> 🔀 **Fork Notice**
+>
+> This is a fork of the original **Tailscale App**.  
+> The **target port is now configurable**, making it compatible with **Nginx Proxy Manager (NPM)**.
+>
+> To advertise **multiple domains**, follow these steps:
+>
+> **1. Create a tag**
+> - Tailscale Admin Console → **Access Controls → Tags**
+> - Create tag: `homeassistant`
+>
+> **2. Create a service**
+> - Tailscale Admin Console → **Services → Define a service**
+> - Name: your subdomain  
+> - Tag: `homeassistant`
+>
+> **3. Configure the service in Docker**
+> You will need the **Advanced SSH & Web Terminal** App to run the commands, and **Protected Mode must be disabled**.
+> ```bash
+> sudo docker ps --format "table {{.ID}}\t{{.Names}}"
+> docker exec -it <container-id> sh
+> ```
+>
+> **4. Serve the service**
+> ```bash
+> /opt/tailscale serve --service="svc:<service-name>" --https="443" "http://127.0.0.1:80"
+> ```
+>
+> - `443` → `share_on_port`
+> - `80` → `target_port` (NPM)
+>
+> **In case you want to remove a service**
+> ```bash
+> /opt/tailscale serve --service="svc:<service-name>" --https="443" off
+> ```
 
 ## About
 
